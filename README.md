@@ -19,11 +19,11 @@
 
 ### 🔒 安全扫描（24 条规则）
 
-- **代码执行**：`eval()` / `exec()` / `os.system` / `new Function()`
+- **代码执行**：`eval()` / `exec()` / `os.system` / `new Function()` <!-- safe-pattern: 特性描述 -->
 - **网络外发**：`curl`/`wget` / `requests` / 硬编码 IP / URL 短链
 - **凭据泄露**：硬编码 API key / 密码 / AWS Key ID / 私钥头 / 敏感路径
 - **混淆**：base64 解码 / 压缩编码 / 超长 hex
-- **系统权限**：`sudo` / `rm -rf` / `chmod 777` / `dd` 覆写
+- **系统权限**：`sudo` / `rm -rf` / `chmod 777` / `dd` 覆写 <!-- safe-pattern: 特性描述 -->
 - **持久化**：修改 rc/crontab/systemd / 系统包安装
 
 ### ⚡ 性能审计（5 条阈值）
@@ -118,7 +118,7 @@ skill-vetter/
 
 ## 版本历史
 
-- **v2.1.0** (2026-08-19) — 独立审计修复 9 问题（original_severity bug / `.key` 词边界 / QUAL-STRUCT-002 实现 / 版本命名漂移清理）
+- **v2.1.0** (2026-08-19) — 独立审计修复 9 问题（original_severity bug / `.key` 词边界 / QUAL-STRUCT-002 实现 / 版本命名漂移清理） <!-- safe-pattern: 版本历史描述 -->
 - **v2.0.1** (2026-08-19) — 3 误判修复 + severity-cap 机制
 - **v2.0.0** (2026-08-19) — 从 v1.0 人工协议升级为 38 条自动化规则
 - **v1.0.0** (2026-08-03) — 原始版（spclaudehome）：4 步人工审计协议 + 15 红线

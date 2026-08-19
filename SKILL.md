@@ -1,6 +1,6 @@
 ---
 name: lz-skill-vetter-plus
-version: 2.1.0
+version: 2.1.1
 description: "OpenClaw 技能自动化审计器 Pro（安全/性能/质量三维度 38 条规则）。基于 spclaudehome v1.0.0 fork 深度升级，新增 JSON 报告、CI 退出码、豁免机制、severity-cap 引擎适配。安装第三方技能前必跑。触发词：vet skill, audit skill, 安全审计, 扫描 skill, skill 检查."
 allowed-tools: [exec, read]
 ---
@@ -147,6 +147,10 @@ jobs:
 MIT License — Copyright (c) 2026 左运来
 
 ## Changelog
+
+### v2.1.1 (2026-08-19)
+- 关联 GitHub 源码仓库（zuoyunlai/lz-skill-vetter），ClawHub source-repo 打通
+- 修正 skill-card.md GitHub 链接（去掉日期后缀）
 
 ### v2.1.0 (2026-08-19)
 - 修 original_severity bug（severity-cap 降级后正确记录原始严重度）

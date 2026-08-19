@@ -1,5 +1,5 @@
 ## Description: <br>
-OpenClaw 技能自动化审计器 Pro v2.0.1 — 三维度扫描（安全/性能/质量），38 条规则，JSON 报告 + 退出码支持 CI 集成。基于 spclaudehome skill-vetter v1.0.0 fork 深度升级，新增豁免机制、severity-cap 引擎适配。Install any skill from ClawHub, GitHub, or other sources — must run before install. <br>
+OpenClaw 技能自动化审计器 Pro v2.1.1 — 三维度扫描（安全/性能/质量），38 条规则，JSON 报告 + 退出码支持 CI 集成。基于 spclaudehome skill-vetter v1.0.0 fork 深度升级，新增豁免机制、severity-cap 引擎适配。Install any skill from ClawHub, GitHub, or other sources — must run before install. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -35,6 +35,8 @@ Mitigation: Code blocks are documentation only — they don't execute; manual re
 **Other Properties Related to Output:** [CI-friendly with --exit-code; JSON machine-readable for pipelines] <br>
 
 ## Skill Version(s): <br>
+2.1.1 (2026-08-19) — 关联 GitHub 源码仓库 zuoyunlai/lz-skill-vetter，source-repo 打通 <br>
+2.1.0 (2026-08-19) — 独立审计修复 9 问题（original_severity bug / .key 词边界 / QUAL-STRUCT-002 实现 / 版本命名漂移清理） <!-- safe-pattern: 版本历史描述 --> <br>
 2.0.1 (2026-08-19) — Forked from spclaudehome v1.0.0; added 38-rule pattern library, JSON output, CI exit codes, 3-tier exemption, severity-cap engine adaptation, 3 false-positive fixes <br>
 2.0.0 (2026-08-19) — Initial automated scanning (38 patterns), JSON output, CI exit codes <br>
 1.0.0 (2026-08-03) — Original by spclaudehome: 4-step manual audit protocol <br>
@@ -43,8 +45,15 @@ Mitigation: Code blocks are documentation only — they don't execute; manual re
 Users should evaluate whether this skill is appropriate for their environment, review audit reports before relying on them, and apply their organization's safety, security, and compliance requirements before deployment. This skill scans files but does not modify them; all actions are read-only. <br>
 
 ## Changelog: <br>
+### v2.1.1 (2026-08-19)
+- 关联 GitHub 源码仓库 zuoyunlai/lz-skill-vetter（source-repo 打通）
+- 修正 GitHub 链接（去掉日期后缀）
+
+### v2.1.0 (2026-08-19)
+- 独立审计修复 9 问题，38 条规则名副其实
+
 ### v2.0.1 (2026-08-19)
-- Renamed to lz-skill-vetter-plus (fork, avoid slug conflict with spclaudehome)
+- Renamed to lz-skill-vetter (final slug lz-skill-vetter-20260819, avoid slug conflict with spclaudehome)
 - 3 false-positive fixes (1password op://, Chrome version number IP, updater curl)
 - batch_audit.sh stderr separation fix
 - severity-cap frontmatter mechanism (engine-class / severity-cap fields)
