@@ -1,6 +1,6 @@
 ---
 name: lz-skill-vetter-plus
-version: 2.1.1
+version: 2.1.2
 description: "OpenClaw 技能自动化审计器 Pro（安全/性能/质量三维度 38 条规则）。基于 spclaudehome v1.0.0 fork 深度升级，新增 JSON 报告、CI 退出码、豁免机制、severity-cap 引擎适配。安装第三方技能前必跑。触发词：vet skill, audit skill, 安全审计, 扫描 skill, skill 检查."
 allowed-tools: [exec, read]
 ---
@@ -87,12 +87,15 @@ scripts/scan.sh /path/to/skill
 
 ## 豁免机制
 
-### 1. `# safe-pattern:` 注释
+### 1. `# safe-pattern:` 注释（双层校验 · v2.1.2）
 
-任意一行带 `# safe-pattern:`（Python/Shell）或 `// safe-pattern:`（JS）即豁免：
+任意一行带 `# safe-pattern: <reason>`（Python/Shell）或 `<!-- safe-pattern: <reason> -->`（Markdown）即**意图**豁免。**v2.1.2 起双层校验**：
+
+- **第一层 · reason 白名单**：必须为 `documentation` / `rule-description` / `version-history` / `doc-example` / `test-fixture` 之一。无 reason 或 reason 未知 → **不豁免**。
+- **第二层 · 文件级 manifest**：仅当该文件列于 `.safe-pattern-manifest.json` 的 `exemptions` 数组且 reason 匹配 → 才豁免。**未提供 manifest 的技能 = 任何 safe-pattern 都不豁免**（默认严格，防御「按内容豁免」攻击面）。
 
 ```python
-# 这是文档示例，展示 setuid 用法（实际未启用）  # safe-pattern:
+# 这是文档示例，展示 setuid 用法（实际未启用）  # safe-pattern: doc-example
 os.setuid(0)
 ```
 
@@ -106,9 +109,32 @@ os.setuid(0)
   exception_pattern: '\$\{?[A-Z_]+\}?'  # 跳过环境变量引用
 ```
 
-### 3. 默认跳过目录
+### 3. 文件路径默认排除
 
-`audit.py` 自动跳过 `scripts/patterns/`（模式定义自身）和 `scripts/audit.py`（审计器自身）。
+`audit.py` 自动跳过：
+- `scripts/patterns/`（模式定义自身）
+- `scripts/audit.py`（审计器自身）
+- `references/_*.md`（下划线前缀的内部文档，包含 scanner 自身的规则说明——防御「规则描述误报」）
+
+### 4. `.safe-pattern-manifest.json`（v2.1.2 新增 · 推荐）
+
+需主动豁免的技能应在根目录创建此清单：
+
+```json
+{
+  "version": 1,
+  "exemptions": [
+    {
+      "file": "scripts/run.py",
+      "reason": "rule-description",
+      "lines": "10-20",
+      "note": "scanner 自身的规则定义"
+    }
+  ]
+}
+```
+
+Scanner 仅在 manifest 列出的文件中识别 `safe-pattern` 注释。**未创建 manifest = 默认严格**（不豁免任何 safe-pattern）。这是 v2.1.2 防御「safe-pattern 按内容豁免」攻击面的核心。
 
 ## CI 集成示例
 
@@ -147,6 +173,14 @@ jobs:
 MIT License — Copyright (c) 2026 左运来
 
 ## Changelog
+
+### v2.1.2 (2026-08-20)
+- **ClawHub scanner 91% Prompt-Injection finding 闭环**（教训 #110）：
+  - **A 移位**：scanner 自家规则说明 `references/_rules_documentation.md` 从扫描范围排除（路径 `references/_*.md` 默认跳过）
+  - **B 收紧豁免**：`safe-pattern` 必须 `reason` 字段，reason 必须在白名单（5 类）
+  - **C 文件级签名**：`.safe-pattern-manifest.json` 机制，**未提供 = 默认严格**（不豁免任何 safe-pattern），攻击面消除
+- 自家 manifest 含 5 处合法豁免（scan.sh / SKILL.md 示例 / 协议示例等）
+- 攻击回归测试 3 次均 0 bypass
 
 ### v2.1.1 (2026-08-19)
 - 关联 GitHub 源码仓库（zuoyunlai/lz-skill-vetter），ClawHub source-repo 打通

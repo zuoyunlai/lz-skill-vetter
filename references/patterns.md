@@ -120,7 +120,7 @@
 
 ```python
 # 安全示例：演示 setuid 用法（仅文档）
-os.setuid(0)  # safe-pattern: 文档示例，非真实调用
+os.setuid(0)  # safe-pattern: doc-example，非真实调用
 ```
 
 ### 3. 默认跳过目录（`audit.py` 内置）

@@ -94,7 +94,7 @@ python3 scripts/audit.py /path/to/skill --format json
 **v2.0 工具辅助**：
 - `audit.py` 自动检测 curl/wget/IP 域名/敏感路径
 - 但「这个权限是否真的需要」必须人工判断
-- 例：SSH key 操作类技能读 `~/.ssh/` 合理；但天气插件读 `~/.ssh/` 必拒 <!-- safe-pattern: 文档示例 -->
+- 例：SSH key 操作类技能读 `~/.ssh/` 合理；但天气插件读 `~/.ssh/` 必拒 <!-- safe-pattern: doc-example -->
 
 ---
 

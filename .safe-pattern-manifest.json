@@ -1,0 +1,44 @@
+{
+  "$schema": "https://clawhub.ai/schemas/safe-pattern-manifest/v1.json",
+  "version": 1,
+  "description": "skill-vetter 自家 safe-pattern 豁免文件清单（v2.1.2 起）。Scanned only when this manifest exists; safe-pattern is honored ONLY in listed files. Each entry must have a reason in the whitelist (documentation / rule-description / version-history / doc-example / test-fixture).",
+  "exemptions": [
+    {
+      "file": "scripts/scan.sh",
+      "reason": "rule-description",
+      "lines": "86-92",
+      "note": "scanner 自身 fallback grep 模式定义本身"
+    },
+    {
+      "file": "SKILL.md",
+      "reason": "doc-example",
+      "lines": "95",
+      "note": "setuid 用法示例（实际未启用）"
+    },
+    {
+      "file": "references/audit_protocol.md",
+      "reason": "doc-example",
+      "lines": "97",
+      "note": "SSH key 操作类 vs 天气插件 示例"
+    },
+    {
+      "file": "references/patterns.md",
+      "reason": "doc-example",
+      "lines": "123",
+      "note": "setuid 文档示例"
+    },
+    {
+      "file": "skill-card.md",
+      "reason": "version-history",
+      "lines": "39",
+      "note": "v2.1.0 changelog（含 dot-key 词边界描述）"
+    }
+  ],
+  "whitelist_reasons": [
+    "documentation",
+    "rule-description",
+    "version-history",
+    "doc-example",
+    "test-fixture"
+  ]
+}

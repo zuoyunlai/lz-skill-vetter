@@ -17,34 +17,20 @@
 
 ## 特性
 
-### 🔒 安全扫描（24 条规则）
+完整 38 条规则索引见 [`references/_rules_documentation.md`](./references/_rules_documentation.md)（v2.1.2 起 scanner 自动排除该文件，避免自指）。
 
-- **代码执行**：`eval()` / `exec()` / `os.system` / `new Function()` <!-- safe-pattern: 特性描述 -->
-- **网络外发**：`curl`/`wget` / `requests` / 硬编码 IP / URL 短链
-- **凭据泄露**：硬编码 API key / 密码 / AWS Key ID / 私钥头 / 敏感路径
-- **混淆**：base64 解码 / 压缩编码 / 超长 hex
-- **系统权限**：`sudo` / `rm -rf` / `chmod 777` / `dd` 覆写 <!-- safe-pattern: 特性描述 -->
-- **持久化**：修改 rc/crontab/systemd / 系统包安装
+### 三大类扫描
 
-### ⚡ 性能审计（5 条阈值）
+- 🔒 **安全扫描（24 条）**：代码执行 / 网络外发 / 凭据泄露 / 混淆 / 系统权限 / 持久化 / 注入 / 隐藏指令
+- ⚡ **性能审计（5 条）**：SKILL.md 体积 / frontmatter / token 用量 / scripts shebang
+- ✨ **质量审计（9 条）**：YAML / 禁用文件 / license / 触发词 / 使用示例
 
-- SKILL.md body 行数 > 500
-- frontmatter description > 500 字符
-- body 字符数 > 30K（~5000 tokens）
-- references/ 单文件 > 800 行
-- scripts/ 缺少 shebang
+### 🛡️ 豁免机制（4 层 · v2.1.2 起）
 
-### ✨ 质量审计（9 条检查）
-
-- frontmatter 必填字段 / YAML 解析 / name 格式
-- 禁用文件 / license 声明 / scripts 可执行权限
-- 使用示例 / "When to Use" 段 / description 触发词
-
-### 🛡️ 豁免机制（3 层）
-
-1. `# safe-pattern:` 注释 —— 单行豁免
-2. `exception_pattern` —— 模式库正则豁免
-3. `severity-cap` / `engine-class` —— 引擎类技能自动降级
+1. `file_glob`（YAML） —— 规则只扫特定文件类型
+2. `exception_pattern`（YAML） —— 同行正则豁免
+3. `<!-- safe-pattern: <reason> -->` —— 单行豁免（**reason 必须白名单**）
+4. `.safe-pattern-manifest.json` —— 文件级白名单（**v2.1.2 新增**，只在白名单文件认 safe-pattern）
 
 ## 快速开始
 
@@ -118,7 +104,8 @@ skill-vetter/
 
 ## 版本历史
 
-- **v2.1.0** (2026-08-19) — 独立审计修复 9 问题（original_severity bug / `.key` 词边界 / QUAL-STRUCT-002 实现 / 版本命名漂移清理） <!-- safe-pattern: 版本历史描述 -->
+- **v2.1.2** (2026-08-20) — ClawHub scanner 91% finding 闭环：A 移位 + B 收紧豁免 + C 文件级签名（教训 #110）
+- **v2.1.0** (2026-08-19) — 独立审计修复 9 问题（original_severity bug / dot-key 词边界 / QUAL-STRUCT-002 实现 / 版本命名漂移清理）
 - **v2.0.1** (2026-08-19) — 3 误判修复 + severity-cap 机制
 - **v2.0.0** (2026-08-19) — 从 v1.0 人工协议升级为 38 条自动化规则
 - **v1.0.0** (2026-08-03) — 原始版（spclaudehome）：4 步人工审计协议 + 15 红线

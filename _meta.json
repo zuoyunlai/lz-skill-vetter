@@ -2,7 +2,7 @@
   "ownerHandle": "zuoyunlai",
   "ownerId": "kn71j6xbmpwfvx4c6y1ez8cd718081mg",
   "slug": "lz-skill-vetter-20260819",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "publishedAt": 1769863429632,
   "license": "MIT",
   "tags": ["security", "audit", "scanner", "automation", "ci", "fork"],

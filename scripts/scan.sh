@@ -83,13 +83,13 @@ echo "Skill: $(basename "$SKILL_PATH")"
 echo "Mode:  grep fallback (no PyYAML)"
 echo "═══════════════════════════════════════════════════════"
 
-# 红线 6 类（与 v1.0 一致）# safe-pattern: 这些是模式定义本身，仅用于 fallback grep
-scan "eval/exec 调用"        '\beval\s*\(|exec(?:Sync)?\s*\('  # safe-pattern:
-scan "硬编码凭据"             '(api[_-]?key|secret|password|token)\s*[:=]\s*["\x27][^"\x27\s]{8,}'  # safe-pattern:
-scan "外发 curl/wget"         '\b(curl|wget)\s+'  # safe-pattern:
-scan "base64 解码"            '\bbase64\s*(-d|--decode|decode)\b'  # safe-pattern:
-scan "rm -rf / sudo"          '\brm\s+-[rRf]+|sudo\s'  # safe-pattern:
-scan "硬编码 IP"              '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b'  # safe-pattern:
+# 红线 6 类（与 v1.0 一致）# safe-pattern: rule-description: 这些是模式定义本身，仅用于 fallback grep
+scan "eval/exec 调用"        '\beval\s*\(|exec(?:Sync)?\s*\('  # safe-pattern: rule-description
+scan "硬编码凭据"             '(api[_-]?key|secret|password|token)\s*[:=]\s*["\x27][^"\x27\s]{8,}'  # safe-pattern: rule-description
+scan "外发 curl/wget"         '\b(curl|wget)\s+'  # safe-pattern: rule-description
+scan "base64 解码"            '\bbase64\s*(-d|--decode|decode)\b'  # safe-pattern: rule-description
+scan "rm -rf / sudo"          '\brm\s+-[rRf]+|sudo\s'  # safe-pattern: rule-description
+scan "硬编码 IP"              '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b'  # safe-pattern: rule-description
 
 echo ""
 echo "═══════════════════════════════════════════════════════"

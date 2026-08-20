@@ -49,6 +49,124 @@ SCRIPT_DIR = Path(__file__).parent
 PATTERNS_FILE = SCRIPT_DIR / "patterns" / "red_flags.yml"
 
 
+# ─────────────────────────────────────────────────────────────
+# safe-pattern 豁免白名单（v2.1.2 起强制）
+# ─────────────────────────────────────────────────────────────
+
+# 允许的 reason 列表（与 .safe-pattern-manifest.json 中的 reason 字段对齐）
+SAFE_PATTERN_REASONS = frozenset({
+    "documentation",      # 通用文档/说明
+    "rule-description",   # 规则描述（scanner 自身的规则索引）
+    "version-history",    # 版本历史/changelog
+    "doc-example",        # 文档示例
+    "test-fixture",       # 测试 fixture（CI 自检用）
+})
+
+
+def _safe_pattern_reason_allowed(line: str) -> bool:
+    """
+    检查行内的 safe-pattern 注释 reason 是否在白名单。
+
+    支持格式：
+      - markdown: <!-- safe-pattern: <reason> -->
+      - python/shell: # safe-pattern: <reason>
+      - js/ts: // safe-pattern: <reason>
+
+    返回 True = 允许豁免；False = 不豁免（让规则继续匹配）。
+    """
+    import re
+    m = re.search(r"safe-pattern\s*:\s*([A-Za-z0-9_\-]+)", line)
+    if not m:
+        # 没有任何 reason → 拒绝豁免（v2.1.2 起强制）
+        return False
+    reason = m.group(1).strip()
+    return reason in SAFE_PATTERN_REASONS
+
+
+# ─────────────────────────────────────────────────────────────
+# .safe-pattern-manifest.json 文件级白名单（v2.1.2 新增）
+# ─────────────────────────────────────────────────────────────
+
+_SAFE_PATTERN_MANIFEST_CACHE: dict | None = None
+
+
+def _load_safe_pattern_manifest(skill_path: Path) -> dict | None:
+    """
+    加载 .safe-pattern-manifest.json（可选）。
+    若存在：返回 dict（含 exemptions 列表和 whitelist_reasons）。
+    若不存在：返回 None（仅使用 SAFE_PATTERN_REASONS 白名单，不限制文件）。
+    """
+    global _SAFE_PATTERN_MANIFEST_CACHE
+    if _SAFE_PATTERN_MANIFEST_CACHE is not None:
+        return _SAFE_PATTERN_MANIFEST_CACHE
+    manifest_path = skill_path / ".safe-pattern-manifest.json"
+    if not manifest_path.exists():
+        _SAFE_PATTERN_MANIFEST_CACHE = None
+        return None
+    try:
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        # manifest 损坏 → 严格拒绝所有 safe-pattern（v2.1.2 安全默认）
+        sys.stderr.write(f"⚠️ .safe-pattern-manifest.json 加载失败: {e}\n")
+        _SAFE_PATTERN_MANIFEST_CACHE = {"_error": True}
+        return _SAFE_PATTERN_MANIFEST_CACHE
+    _SAFE_PATTERN_MANIFEST_CACHE = data
+    return data
+
+
+def _safe_pattern_allowed(file_path: Path, line: str) -> bool:
+    """
+    检查 safe-pattern 注释是否允许豁免（v2.1.2 双层校验）。
+
+    第一层：reason 必须在 SAFE_PATTERN_REASONS 白名单
+    第二层（manifest 必须存在）：file_path 必须在 manifest.exemptions 白名单 + reason 必须匹配
+
+    **默认严格**：未提供 .safe-pattern-manifest.json 的技能 = 任何 safe-pattern 都不豁免。
+    原因：防御「按内容豁免」攻击面——攻击者不知道 manifest 存在，伪造 safe-pattern 必拦。
+    现有技能需 opt-in：主动创建 .safe-pattern-manifest.json 才使用豁免。
+
+    返回 True = 允许豁免；False = 不豁免。
+    """
+    # 第一层：reason 白名单
+    if not _safe_pattern_reason_allowed(line):
+        return False
+
+    # 第二层：manifest 文件级白名单（**必须存在**）
+    skill_path = file_path
+    while skill_path.parent != skill_path:
+        if (skill_path / ".safe-pattern-manifest.json").exists():
+            break
+        skill_path = skill_path.parent
+    manifest = _load_safe_pattern_manifest(skill_path)
+    if manifest is None:
+        # 无 manifest = 默认严格 → 拒绝豁免
+        return False
+    if manifest.get("_error"):
+        # manifest 损坏 → 拒绝所有 safe-pattern
+        return False
+
+    # 提取 line reason
+    import re
+    m = re.search(r"safe-pattern\s*:\s*([A-Za-z0-9_\-]+)", line)
+    if not m:
+        return False
+    line_reason = m.group(1).strip()
+
+    # 检查 manifest 中是否有该文件 + reason 匹配
+    try:
+        rel_path = str(file_path.relative_to(skill_path))
+    except ValueError:
+        rel_path = str(file_path)
+
+    for ex in manifest.get("exemptions", []):
+        if ex.get("file") == rel_path and ex.get("reason") == line_reason:
+            return True
+    return False
+
+
+# ─────────────────────────────────────────────────────────────
+# safe-pattern 豁免白名单（v2.1.2 起强制）
+# ─────────────────────────────────────────────────────────────
 def load_patterns() -> dict:
     """加载模式库（red_flags.yml）。"""
     if not PATTERNS_FILE.exists():
@@ -70,7 +188,7 @@ def scan_security(skill_path: Path, patterns: dict) -> list:
     sec = patterns["security"]
     groups = sec["groups"]
 
-    # 收集目标文件（跳过 patterns/ 目录避免自指）
+    # 收集目标文件（跳过 patterns/ 目录 + references/_*.md 内部文档）
     target_files = []
     for ext in ["*.sh", "*.py", "*.js", "*.ts", "*.mjs", "*.cjs", "*.md", "*.yaml", "*.yml"]:
         for f in skill_path.rglob(ext):
@@ -80,6 +198,14 @@ def scan_security(skill_path: Path, patterns: dict) -> list:
             # 跳过审计器自身（自扫描时会产生大量自身代码命中）
             if f.name == "audit.py":
                 continue
+            # 跳过 references/_*.md 内部文档（v2.1.2 起；下划线前缀表示内部规则说明，
+            # scanner 不读，避免「自身规则描述」触发「自身规则」的循环误报/攻击面）
+            if "/references/_" in str(f) or str(f).endswith("/references/_rules_documentation.md") or \
+               any(part.startswith("_") and part.endswith(".md") for part in f.relative_to(skill_path).parts if "/" in str(f.relative_to(skill_path))):
+                # 更稳妥的判断：路径中含 references/ 且该 references/ 下文件名以下划线开头
+                rel = f.relative_to(skill_path)
+                if len(rel.parts) >= 2 and rel.parts[0] == "references" and rel.name.startswith("_"):
+                    continue
             target_files.append(f)
 
     for f in target_files:
@@ -125,9 +251,13 @@ def scan_security(skill_path: Path, patterns: dict) -> list:
                 # 表格行（文档描述而非真实代码）
                 if stripped.startswith("|") or stripped.endswith("|") or " | " in stripped:
                     continue
-                # markdown 注释豁免 <!-- safe-pattern: ... -->
+                # markdown 注释豁免 <!-- safe-pattern: <reason> -->
+                # v2.1.2 起：reason 必须来自白名单（防御「按内容豁免」攻击面）
+                # v2.1.2 起：且文件必须在 .safe-pattern-manifest.json 白名单（如果存在）
                 if "<!-- safe-pattern" in line:
-                    continue
+                    if _safe_pattern_allowed(f, line):
+                        continue
+                    # reason 不在白名单 / 文件不在 manifest → 不豁免，继续走正常匹配
 
             for group in groups:
                 # 检查 file_glob 过滤
@@ -165,9 +295,12 @@ def scan_security(skill_path: Path, patterns: dict) -> list:
                     except re.error:
                         pass
 
-                # 检查 safe-pattern: 注释豁免（同行出现即豁免）
+                # 检查 safe-pattern: 注释豁免（v2.1.2 起：同行 reason 必须白名单）
+                # v2.1.2 起：且文件必须在 .safe-pattern-manifest.json 白名单（如果存在）
                 if "# safe-pattern:" in line or "// safe-pattern:" in line:
-                    continue
+                    if _safe_pattern_allowed(f, line):
+                        continue
+                    # reason 不在白名单 / 文件不在 manifest → 不豁免
 
                 findings.append({
                     "id": group["id"],
