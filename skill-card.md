@@ -1,5 +1,5 @@
 ## Description: <br>
-OpenClaw 技能自动化审计器 Pro v2.1.2 — 三维度扫描（安全/性能/质量），38 条规则，JSON 报告 + 退出码支持 CI 集成。v2.1.2 强化 safe-pattern 双层校验（reason 白名单 + 文件级 manifest），消除「按内容豁免」攻击面（教训 #110）。基于 spclaudehome skill-vetter v1.0.0 fork 深度升级，新增豁免机制、severity-cap 引擎适配。Install any skill from ClawHub, GitHub, or other sources — must run before install. <br>
+OpenClaw 技能自动化审计器 Pro v2.1.3 — 三维度扫描（安全/性能/质量），38 条规则，JSON 报告 + 退出码支持 CI 集成。v2.1.3 防「severity-cap 洗白 critical」攻击：verdict 双路径计算（capped vs uncapped）+ 警告横幅。基于 spclaudehome skill-vetter v1.0.0 fork 深度升级，新增豁免机制、severity-cap 引擎适配。Install any skill from ClawHub, GitHub, or other sources — must run before install. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -46,6 +46,10 @@ Mitigation: Code blocks are documentation only — they don't execute; manual re
 Users should evaluate whether this skill is appropriate for their environment, review audit reports before relying on them, and apply their organization's safety, security, and compliance requirements before deployment. This skill scans files but does not modify them; all actions are read-only. <br>
 
 ## Changelog: <br>
+### v2.1.3 (2026-08-20)
+- **severity-cap 攻击面闭环**（ClawHub scanner 新 advisory 命中）：verdict 双路径计算（capped vs uncapped）+ 主 verdict 取严重者 + text 报告加 🚨 警告横幅
+- 攻击回归：恶意 skill 设 `severity-cap: low` → 原 verdict = SAFE → 现 verdict = ❌ DO NOT INSTALL + 警告横幅显示 capped/uncapped 双值
+
 ### v2.1.2 (2026-08-20)
 - ClawHub scanner 91% Prompt-Injection finding 闭环（A 移位 + B 收紧豁免 + C 文件级签名 · 教训 #110）
 - safe-pattern reason 白名单强制（防御「按内容豁免」攻击面）

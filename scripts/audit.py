@@ -695,28 +695,40 @@ def apply_severity_cap(skill_path: Path, findings: list) -> tuple[str | None, in
     return cap, downgraded
 
 
+def _count_by_severity(findings: list, severity_key: str = "severity") -> dict:
+    """按严重度计数（可指定是用 current severity 还是 original_severity）。"""
+    counts = {sev: 0 for sev in SEVERITY_ORDER}
+    for f in findings:
+        sev = f.get(severity_key, f["severity"])
+        counts[sev] = counts.get(sev, 0) + 1
+    return counts
+
+
+def _verdict_from_counts(by_severity: dict) -> tuple[str, str]:
+    """根据严重度计数计算 verdict 与 emoji。"""
+    if by_severity.get("critical", 0) > 0:
+        return "❌ DO NOT INSTALL", "⛔"
+    if by_severity.get("high", 0) > 0:
+        return "⚠️ INSTALL WITH CAUTION", "🔴"
+    if by_severity.get("medium", 0) > 0:
+        return "⚠️ REVIEW MEDIUM ISSUES", "🟡"
+    if by_severity.get("low", 0) + by_severity.get("info", 0) > 0:
+        return "✅ SAFE TO INSTALL (minor notes)", "🟢"
+    return "✅ SAFE TO INSTALL", "🟢"
+
+
 def build_report(skill_path: Path, findings: list, patterns: dict) -> dict:
     """构建完整审计报告。"""
-    by_severity = {sev: 0 for sev in SEVERITY_ORDER}
-    for f in findings:
-        by_severity[f["severity"]] = by_severity.get(f["severity"], 0) + 1
+    # v2.1.3：双路径 verdict 计算
+    # - capped_verdict：按当前 severity 算（可能已被 severity-cap 降级）
+    # - uncapped_verdict：按 original_severity 算（反映真实严重度）
+    # - primary verdict：二者取严重者（防止「severity-cap=low 洗白 critical」攻击）
+    by_severity = _count_by_severity(findings, "severity")
+    verdict, emoji = _verdict_from_counts(by_severity)
 
-    # 计算 verdict
-    if by_severity["critical"] > 0:
-        verdict = "❌ DO NOT INSTALL"
-        emoji = "⛔"
-    elif by_severity["high"] > 0:
-        verdict = "⚠️ INSTALL WITH CAUTION"
-        emoji = "🔴"
-    elif by_severity["medium"] > 0:
-        verdict = "⚠️ REVIEW MEDIUM ISSUES"
-        emoji = "🟡"
-    elif by_severity["low"] + by_severity["info"] > 0:
-        verdict = "✅ SAFE TO INSTALL (minor notes)"
-        emoji = "🟢"
-    else:
-        verdict = "✅ SAFE TO INSTALL"
-        emoji = "🟢"
+    # uncapped 计数（基于 original_severity）
+    by_original_severity = _count_by_severity(findings, "original_severity")
+    uncapped_verdict, _ = _verdict_from_counts(by_original_severity)
 
     # 统计文件
     files_scanned = set(f["file"] for f in findings if f["file"])
@@ -740,6 +752,7 @@ def build_report(skill_path: Path, findings: list, patterns: dict) -> dict:
             "total_lines_scanned": total_lines,
             "total_findings": len(findings),
             "by_severity": by_severity,
+            "by_original_severity": by_original_severity,
             "by_category": _count_by(findings, "category"),
         },
         "findings": findings,
@@ -749,6 +762,7 @@ def build_report(skill_path: Path, findings: list, patterns: dict) -> dict:
                 "review" if by_severity["medium"] > 0 else "ok"
             )
         ),
+        "uncapped_verdict": uncapped_verdict,
     }
 
 
@@ -759,6 +773,34 @@ def build_report_with_cap(skill_path: Path, findings: list, patterns: dict) -> d
     if cap:
         report["severity_cap_applied"] = cap
         report["severity_cap_downgraded_count"] = downgraded
+
+        # v2.1.3：防「severity-cap=low 洗白 critical」攻击
+        # capped verdict（基于已 cap 的 finding severity）
+        capped = report["verdict"]
+        # uncapped verdict（基于 original_severity 真实严重度）
+        uncapped = report["uncapped_verdict"]
+        # primary verdict：取严重者（防止 cap 误导安装决策）
+        if "DO NOT INSTALL" in uncapped or "DO NOT INSTALL" in capped:
+            primary = "❌ DO NOT INSTALL"
+        elif "INSTALL WITH CAUTION" in uncapped or "INSTALL WITH CAUTION" in capped:
+            primary = "⚠️ INSTALL WITH CAUTION"
+        elif "REVIEW MEDIUM ISSUES" in uncapped or "REVIEW MEDIUM ISSUES" in capped:
+            primary = "⚠️ REVIEW MEDIUM ISSUES"
+        else:
+            primary = capped
+
+        report["capped_verdict"] = capped
+        report["uncapped_verdict"] = uncapped
+        report["verdict"] = primary
+
+        # 警告信息
+        if downgraded > 0:
+            report["severity_warning"] = (
+                f"⚠️ severity-cap={cap} downgraded {downgraded} findings. "
+                f"Capped verdict was '{capped}' but uncapped (real) verdict is '{uncapped}'. "
+                f"Primary verdict set to most severe: '{primary}'. "
+                f"Inspect findings' original_severity before trusting verdict."
+            )
     return report
 
 
@@ -797,6 +839,19 @@ def render_text(report: dict, severity_filter: str | None = None) -> str:
     lines.append("─" * 60)
     lines.append(f"VERDICT: {report['verdict']}")
     lines.append("─" * 60)
+
+    # v2.1.3：severity-cap 警告横幅
+    if report.get("severity_warning"):
+        lines.append("")
+        lines.append("🚨 " + "═" * 56)
+        lines.append(f"🚨  SEVERITY-CAP WARNING")
+        lines.append(f"🚨  cap={report.get('severity_cap_applied')} downgraded {report.get('severity_cap_downgraded_count')} findings")
+        lines.append(f"🚨  Capped verdict:   {report.get('capped_verdict')}")
+        lines.append(f"🚨  Uncapped verdict: {report.get('uncapped_verdict')}")
+        lines.append(f"🚨  Primary verdict = most severe (cannot be whitewashed by cap)")
+        lines.append(f"🚨  → Inspect findings' original_severity before trusting verdict")
+        lines.append("🚨 " + "═" * 56)
+        lines.append("")
 
     findings = report["findings"]
     if severity_filter:

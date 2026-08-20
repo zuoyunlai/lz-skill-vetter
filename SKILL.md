@@ -1,11 +1,11 @@
 ---
 name: lz-skill-vetter-plus
-version: 2.1.2
+version: 2.1.3
 description: "OpenClaw 技能自动化审计器 Pro（安全/性能/质量三维度 38 条规则）。基于 spclaudehome v1.0.0 fork 深度升级，新增 JSON 报告、CI 退出码、豁免机制、severity-cap 引擎适配。安装第三方技能前必跑。触发词：vet skill, audit skill, 安全审计, 扫描 skill, skill 检查."
 allowed-tools: [exec, read]
 ---
 
-# LZ Skill Vetter Pro v2.1.0 🔒🦀
+# LZ Skill Vetter Pro v2.1.3 🔒🦀
 
 > 基于 [skill-vetter](https://clawhub.ai/spclaudehome/skills/skill-vetter)（spclaudehome v1.0.0）的深度升级版。  
 > 原作者授权协议下 fork，38 条自动化规则 + 3 层豁免 + CI 集成 + 引擎类技能适配。
@@ -173,6 +173,11 @@ jobs:
 MIT License — Copyright (c) 2026 左运来
 
 ## Changelog
+
+### v2.1.3 (2026-08-20)
+- **severity-cap 攻击面闭环**（ClawHub scanner 新 advisory 命中）：verdict 双路径计算（capped vs uncapped）+ 主 verdict 取严重者 + text 报告加 🚨 警告横幅
+- 攻击回归：恶意 skill 设 `severity-cap: low` → 原 verdict = SAFE → 现 verdict = ❌ DO NOT INSTALL + 警告横幅显示 capped/uncapped 双值
+- 自家 SKILL.md 不使用 severity-cap，无回归风险
 
 ### v2.1.2 (2026-08-20)
 - **ClawHub scanner 91% Prompt-Injection finding 闭环**（教训 #110）：
